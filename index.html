@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Life in Weeks — Reverse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,400&family=JetBrains+Mono:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c0e10;
+    --bg-soft:#13161a;
+    --ink:#e8e6e1;
+    --ink-dim:#8a8d91;
+    --lived:#33373d;          /* weeks already consumed */
+    --lived-edge:#3f444b;
+    --remain:#2bb7a3;         /* weeks remaining */
+    --remain-glow:rgba(43,183,163,.45);
+    --now:#e8a33d;            /* current week */
+    --now-glow:rgba(232,163,61,.65);
+    --line:#21252b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink)}
+  body{
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    min-height:100vh;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #15191e 0%, transparent 60%),
+      var(--bg);
+    padding:clamp(18px,4vw,56px);
+    display:flex;flex-direction:column;align-items:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:840px}
+
+  header{text-align:center;margin-bottom:clamp(24px,5vw,48px)}
+  .eyebrow{
+    font-size:.72rem;letter-spacing:.42em;text-transform:uppercase;
+    color:var(--ink-dim);margin-bottom:14px;font-weight:500;
+  }
+  .name{
+    font-family:"Fraunces",serif;font-weight:500;
+    font-size:clamp(1.4rem,5.2vw,2.3rem);line-height:1.1;
+    color:var(--remain);letter-spacing:.01em;margin-bottom:12px;
+    text-shadow:0 0 26px var(--remain-glow);
+  }
+  h1{
+    font-family:"Fraunces",serif;font-weight:300;font-style:italic;
+    font-size:clamp(1.5rem,5vw,2.4rem);line-height:1.1;color:var(--ink);
+  }
+  h1 b{font-style:normal;font-weight:500}
+  .endbadge{
+    display:inline-block;margin-top:20px;
+    background:rgba(232,163,61,.1);border:1px solid rgba(232,163,61,.4);
+    color:var(--now);border-radius:999px;
+    padding:9px 20px;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;
+    box-shadow:0 0 24px rgba(232,163,61,.18);
+  }
+  .endbadge b{font-weight:700;letter-spacing:.04em}
+  .lifespan{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    margin-top:16px;flex-wrap:wrap;font-size:.82rem;
+  }
+  .ls-label{color:var(--ink-dim);letter-spacing:.16em;text-transform:uppercase;font-size:.68rem}
+  .ls-display{color:var(--ink)}
+  .ls-display b{color:var(--remain);font-weight:700;font-size:1.05rem}
+  .ls-input{
+    width:74px;background:var(--bg-soft);border:1px solid var(--remain);color:var(--ink);
+    border-radius:8px;padding:6px 8px;font-family:inherit;font-size:.95rem;text-align:center;
+    color-scheme:dark;display:none;
+  }
+  .ls-input:focus{outline:none}
+  .ls-edit{
+    background:transparent;border:1px solid var(--line);color:var(--ink-dim);
+    border-radius:7px;padding:5px 10px;font-family:inherit;font-size:.68rem;
+    letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;
+  }
+  .ls-edit:hover{color:var(--remain);border-color:var(--remain)}
+  .lifespan.editing .ls-display{display:none}
+  .lifespan.editing .ls-input{display:inline-block}
+
+  /* ---- big remaining-weeks number ---- */
+  .counter{
+    text-align:center;margin:clamp(28px,6vw,52px) 0 clamp(14px,3vw,22px);
+  }
+  .counter .label{
+    font-size:.7rem;letter-spacing:.34em;text-transform:uppercase;
+    color:var(--ink-dim);margin-bottom:10px;
+  }
+  .bignum{
+    font-weight:700;color:var(--remain);
+    font-size:clamp(3.6rem,17vw,8.5rem);line-height:.9;
+    letter-spacing:-.02em;
+    text-shadow:0 0 38px var(--remain-glow);
+    font-variant-numeric:tabular-nums;
+  }
+  .counter .sub{margin-top:12px;color:var(--ink-dim);font-size:.82rem;letter-spacing:.04em}
+  .counter .sub b{color:var(--ink)}
+
+  /* ---- live ticker ---- */
+  .ticker-head{
+    text-align:center;font-size:.7rem;letter-spacing:.34em;text-transform:uppercase;
+    color:var(--ink-dim);margin-bottom:14px;
+  }
+  .ticker{
+    display:flex;justify-content:center;gap:clamp(8px,2.6vw,22px);
+    margin:6px auto clamp(34px,7vw,60px);flex-wrap:wrap;
+  }
+  .unit{
+    background:var(--bg-soft);border:1px solid var(--line);
+    border-radius:12px;padding:14px clamp(10px,3vw,22px);
+    min-width:74px;text-align:center;
+  }
+  .unit .v{
+    font-weight:700;font-size:clamp(1.3rem,4.6vw,2rem);
+    color:var(--ink);font-variant-numeric:tabular-nums;
+  }
+  .unit .k{
+    font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--ink-dim);margin-top:6px;
+  }
+
+  /* ---- grid ---- */
+  .gridhead{
+    display:flex;justify-content:space-between;align-items:baseline;
+    margin-bottom:14px;flex-wrap:wrap;gap:8px;
+  }
+  .gridhead .t{font-family:"Fraunces",serif;font-style:italic;font-size:1.05rem;color:var(--ink)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap}
+  .legend span{font-size:.68rem;color:var(--ink-dim);display:flex;align-items:center;gap:7px}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .dot.l{background:var(--lived);border:1px solid var(--lived-edge)}
+  .dot.r{background:var(--remain)}
+  .dot.n{background:var(--now);box-shadow:0 0 8px var(--now-glow)}
+
+  .gridscroll{overflow-x:auto;padding-bottom:6px}
+  .grid{
+    display:grid;grid-template-columns:repeat(52,1fr);
+    gap:clamp(2px,.5vw,3px);min-width:420px;
+  }
+  .cell{
+    aspect-ratio:1/1;border-radius:2px;
+    background:var(--lived);border:1px solid var(--lived-edge);
+  }
+  .cell.remain{background:var(--remain);border-color:transparent;opacity:.9}
+  .cell.now{
+    background:var(--now);border-color:transparent;
+    box-shadow:0 0 6px var(--now-glow);
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+
+  .axis{text-align:center;font-size:.62rem;color:var(--ink-dim);margin-top:10px;letter-spacing:.1em}
+
+  /* ---- settings ---- */
+  .settings{
+    margin-top:clamp(34px,7vw,56px);border-top:1px solid var(--line);
+    padding-top:22px;
+  }
+  details summary{
+    cursor:pointer;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--ink-dim);list-style:none;user-select:none;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"⚙  ";opacity:.7}
+  .fields{display:flex;gap:16px;flex-wrap:wrap;margin-top:18px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+  .field input{
+    background:var(--bg-soft);border:1px solid var(--line);color:var(--ink);
+    border-radius:8px;padding:10px 12px;font-family:inherit;font-size:.9rem;
+    color-scheme:dark;
+  }
+  .field input:focus{outline:none;border-color:var(--remain)}
+  .note{font-size:.66rem;color:var(--ink-dim);margin-top:14px;line-height:1.6}
+
+  footer{margin-top:40px;text-align:center;font-size:.64rem;color:var(--ink-dim);line-height:1.7}
+  footer .q{font-family:"Fraunces",serif;font-style:italic;font-size:.84rem;color:var(--ink);display:block;margin-bottom:8px}
+  .quoteslink{
+    color:var(--remain);text-decoration:none;font-size:.78rem;letter-spacing:.14em;
+    text-transform:uppercase;border-bottom:1px solid transparent;transition:border-color .2s,color .2s;
+  }
+  .quoteslink:hover{color:var(--now);border-color:var(--now)}
+  .quotescta{margin-top:24px}
+  .quotesbtn{
+    display:inline-block;text-decoration:none;
+    background:rgba(43,183,163,.1);border:1px solid rgba(43,183,163,.45);
+    color:var(--remain);border-radius:12px;
+    padding:14px 26px;font-size:.95rem;font-weight:500;letter-spacing:.02em;
+    transition:all .22s;text-transform:none;
+  }
+  .quotesbtn:hover{background:rgba(43,183,163,.2);box-shadow:0 0 26px var(--remain-glow);transform:translateY(-1px)}
+  .quotescta-sub{margin-top:12px;font-size:.7rem;color:var(--ink-dim);letter-spacing:.04em}
+
+  /* ---- quotes modal ---- */
+  .overlay{
+    position:fixed;inset:0;z-index:50;display:none;
+    background:rgba(6,8,10,.82);backdrop-filter:blur(6px);
+    padding:clamp(16px,5vw,48px);overflow-y:auto;
+  }
+  .overlay.open{display:flex;align-items:flex-start;justify-content:center}
+  .modal{
+    position:relative;width:100%;max-width:640px;margin:auto;
+    background:linear-gradient(180deg,#16191e 0%,#101316 100%);
+    border:1px solid var(--line);border-radius:18px;
+    padding:clamp(28px,6vw,52px);
+    box-shadow:0 30px 80px rgba(0,0,0,.6);
+    animation:rise .35s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .close{
+    position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:50%;
+    background:var(--bg-soft);border:1px solid var(--line);color:var(--ink-dim);
+    cursor:pointer;font-size:1rem;line-height:1;transition:color .2s,border-color .2s;
+  }
+  .close:hover{color:var(--ink);border-color:var(--remain)}
+  .modal-eyebrow{font-size:.68rem;letter-spacing:.34em;text-transform:uppercase;color:var(--ink-dim);text-align:center}
+  .modal-title{
+    font-family:"Fraunces",serif;font-style:italic;font-weight:300;
+    font-size:clamp(1.8rem,6vw,2.6rem);text-align:center;color:var(--ink);
+    margin:10px 0 30px;
+  }
+  .quotes{display:flex;flex-direction:column;gap:22px}
+  .quote{
+    border-left:2px solid var(--remain);padding:4px 0 4px 18px;
+  }
+  .quote p{
+    font-family:"Fraunces",serif;font-style:italic;font-weight:300;
+    font-size:clamp(1.05rem,3.2vw,1.3rem);line-height:1.5;color:var(--ink);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Memento Mori</div>
+    <div class="name">Seggem Srikanth Chandra</div>
+    <h1>Your life, counted in <b>weeks</b> — running <b>backwards</b>.</h1>
+    <div class="endbadge">Expected end&nbsp;·&nbsp;<b id="endDate">—</b></div>
+    <div class="lifespan">
+      <span class="ls-label">Expected lifespan</span>
+      <span class="ls-display" id="lsDisplay"><b id="lsValue">70</b>&nbsp;years</span>
+      <input class="ls-input" id="lsInput" type="number" min="1" max="120" value="70">
+      <button class="ls-edit" id="lsEdit" aria-label="Edit lifespan" title="Edit lifespan">✎ edit</button>
+    </div>
+  </header>
+
+  <section class="counter">
+    <div class="label">Weeks Remaining</div>
+    <div class="bignum" id="weeksLeft">—</div>
+    <div class="sub"><b id="weeksLived">—</b> lived weeks &nbsp;·&nbsp; <b id="weeksTotal">—</b> total weeks &nbsp;·&nbsp; <b id="pctLeft">—</b> left</div>
+  </section>
+
+  <div class="ticker-head">Life remaining for you</div>
+  <div class="ticker">
+    <div class="unit"><div class="v" id="d">—</div><div class="k">Days</div></div>
+    <div class="unit"><div class="v" id="h">—</div><div class="k">Hours</div></div>
+    <div class="unit"><div class="v" id="m">—</div><div class="k">Minutes</div></div>
+    <div class="unit"><div class="v" id="s">—</div><div class="k">Seconds</div></div>
+  </div>
+
+  <div class="gridhead">
+    <div class="t">Every square is one week</div>
+    <div class="legend">
+      <span><i class="dot l"></i>Consumed</span>
+      <span><i class="dot n"></i>This week</span>
+      <span><i class="dot r"></i>Remaining</span>
+    </div>
+  </div>
+  <div class="gridscroll"><div class="grid" id="grid"></div></div>
+  <div class="axis">← 52 weeks per row (one row ≈ one year of life) →</div>
+
+  <div class="settings">
+    <details>
+      <summary>Adjust birth date &amp; lifespan</summary>
+      <div class="fields">
+        <div class="field">
+          <label for="dob">Birth date</label>
+          <input type="date" id="dob" value="1993-05-05">
+        </div>
+        <div class="field">
+          <label for="span">Lifespan (years)</label>
+          <input type="number" id="span" value="70" min="1" max="120">
+        </div>
+      </div>
+      <div class="note">
+        The big number and ticker are computed from the exact dates above (leap years included).
+        The grid uses 52 weeks per row for a clean year-by-year layout, so its cell count can differ
+        from the exact total by a few weeks. Settings are saved in your browser.
+      </div>
+    </details>
+  </div>
+
+  <footer>
+    <span class="q">"You could have it all — yet a finite number of weeks remain. Spend them well."</span>
+    Each second the seconds fall. Make the remaining squares count.
+    <div class="quotescta">
+      <a href="#" id="openQuotes" class="quotesbtn">📖 &nbsp;Open “Reflections on Time &amp; Life”</a>
+      <div class="quotescta-sub">A separate page of curated quotes — click to read</div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- quotes overlay -->
+<div class="overlay" id="overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Quotes on time and life">
+    <button class="close" id="closeQuotes" aria-label="Close">✕</button>
+    <div class="modal-eyebrow">Reflections</div>
+    <h2 class="modal-title">On Time &amp; Life</h2>
+    <div class="quotes" id="quotesList"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const WEEK_MS = 7*24*60*60*1000;
+  const DAY_MS  = 24*60*60*1000;
+  const HOUR_MS = 60*60*1000;
+  const MIN_MS  = 60*1000;
+
+  const $ = id => document.getElementById(id);
+  const dobInput = $('dob'), spanInput = $('span');
+
+  // restore saved settings
+  try{
+    const saved = JSON.parse(localStorage.getItem('lifeclock')||'null');
+    if(saved){ if(saved.dob) dobInput.value = saved.dob; if(saved.span) spanInput.value = saved.span; }
+  }catch(e){}
+
+  function save(){
+    try{ localStorage.setItem('lifeclock', JSON.stringify({dob:dobInput.value, span:spanInput.value})); }catch(e){}
+  }
+
+  function getConfig(){
+    const birth = new Date(dobInput.value + 'T00:00:00');
+    const years = Math.max(1, Math.min(120, parseInt(spanInput.value,10)||70));
+    const death = new Date(birth.getTime());
+    death.setFullYear(death.getFullYear() + years);   // calendar-accurate end date
+    return {birth, death, years};
+  }
+
+  function buildGrid(weeksLivedIdx, years){
+    const grid = $('grid');
+    grid.innerHTML = '';
+    const totalCells = years * 52;               // clean 52/row layout
+    const frag = document.createDocumentFragment();
+    for(let i=0;i<totalCells;i++){
+      const c = document.createElement('div');
+      c.className = 'cell';                          // default = lived (grey)
+      if(i === weeksLivedIdx)      c.className = 'cell now';
+      else if(i > weeksLivedIdx)   c.className = 'cell remain';
+      frag.appendChild(c);
+    }
+    grid.appendChild(frag);
+  }
+
+  let lastLivedIdx = -1;
+
+  function render(){
+    const {birth, death, years} = getConfig();
+    if(isNaN(birth.getTime())) return;
+    const now = new Date();
+
+    const msLived  = now - birth;
+    const msLeft   = Math.max(0, death - now);
+    const msTotal  = death - birth;
+
+    const weeksLived = Math.floor(msLived / WEEK_MS);
+    const weeksLeft  = Math.max(0, Math.ceil(msLeft / WEEK_MS));
+    const weeksTotal = Math.round(msTotal / WEEK_MS);
+    const pct = msTotal>0 ? Math.max(0,(msLeft/msTotal*100)) : 0;
+
+    $('weeksLeft').textContent  = weeksLeft.toLocaleString();
+    $('weeksLived').textContent = Math.max(0,weeksLived).toLocaleString();
+    $('weeksTotal').textContent = weeksTotal.toLocaleString();
+    $('pctLeft').textContent    = pct.toFixed(1) + '%';
+
+    // expected end date highlight
+    const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    $('endDate').textContent = String(death.getDate()).padStart(2,'0')+' '+months[death.getMonth()]+' '+death.getFullYear();
+
+    // keep top lifespan display in sync with the source value (unless mid-edit)
+    if(document.activeElement !== $('lsInput')){
+      $('lsValue').textContent = years;
+      $('lsInput').value = years;
+    }
+
+    // ticker
+    let r = msLeft;
+    const dd = Math.floor(r/DAY_MS); r -= dd*DAY_MS;
+    const hh = Math.floor(r/HOUR_MS); r -= hh*HOUR_MS;
+    const mm = Math.floor(r/MIN_MS);  r -= mm*MIN_MS;
+    const ss = Math.floor(r/1000);
+    $('d').textContent = dd.toLocaleString();
+    $('h').textContent = String(hh).padStart(2,'0');
+    $('m').textContent = String(mm).padStart(2,'0');
+    $('s').textContent = String(ss).padStart(2,'0');
+
+    // rebuild grid only when week index or config changes (cheap)
+    const livedIdx = Math.max(0, Math.min(years*52-1, weeksLived));
+    if(livedIdx !== lastLivedIdx){
+      buildGrid(livedIdx, years);
+      lastLivedIdx = livedIdx;
+    }
+  }
+
+  function reset(){ lastLivedIdx = -1; save(); render(); }
+  dobInput.addEventListener('change', reset);
+  spanInput.addEventListener('input', reset);
+
+  /* ---------- inline lifespan editor (top), synced to spanInput ---------- */
+  const lsWrap = document.querySelector('.lifespan');
+  const lsInput = $('lsInput'), lsEdit = $('lsEdit');
+
+  function startEdit(){
+    lsWrap.classList.add('editing');
+    lsInput.value = spanInput.value;
+    lsEdit.textContent = '✓ save';
+    lsInput.focus(); lsInput.select();
+  }
+  function commitEdit(){
+    let v = parseInt(lsInput.value,10);
+    if(isNaN(v)) v = parseInt(spanInput.value,10)||70;
+    v = Math.max(1, Math.min(120, v));
+    spanInput.value = v;            // spanInput is the single source of truth
+    lsWrap.classList.remove('editing');
+    lsEdit.textContent = '✎ edit';
+    reset();                        // recompute everything from new lifespan
+  }
+  lsEdit.addEventListener('click', ()=> lsWrap.classList.contains('editing') ? commitEdit() : startEdit());
+  lsInput.addEventListener('keydown', e=>{ if(e.key==='Enter') commitEdit(); if(e.key==='Escape'){ lsWrap.classList.remove('editing'); lsEdit.textContent='✎ edit'; } });
+  lsInput.addEventListener('blur', ()=>{ if(lsWrap.classList.contains('editing')) commitEdit(); });
+
+  render();
+  setInterval(render, 1000);
+
+  /* ---------- quotes (curated, no attributions) ---------- */
+  const QUOTES = [
+    // — time & mortality (the heart of this clock) —
+    "It is not that we have a short time to live, but that we waste a lot of it.",
+    "We complain that our days are few, and act as though there would be no end of them.",
+    "You could leave life right now. Let that determine what you do, say and think.",
+    "How we spend our days is how we spend our lives.",
+    "Lost time is never found again.",
+    "Time is the most valuable thing you can spend.",
+    "Time is what we want most, but what we use worst.",
+    "Do not squander time, for that is the stuff life is made of.",
+    "We are like a prepaid card with limited validity. If we are lucky, we may last another 50 years — and 50 years is just 2,500 weekends. Do we really need to get so worked up?",
+    // — reality & hard truths —
+    "You can avoid reality, but you cannot avoid the consequences of avoiding reality.",
+    "The truth will set you free. But first it'll piss you off.",
+    "You learn nothing from life if you think you're right all the time.",
+    "Every situation in life is temporary. So when life is good, enjoy it fully; and when it is not, remember it will not last forever and better days are on the way.",
+    // — strength, drive & self-mastery —
+    "Strength is life, weakness is death.",
+    "The question isn't who is going to let me; it's who is going to stop me.",
+    "Self-control is strength. Calmness is mastery. Don't let others control the direction of your life, and don't let your emotions overpower your intelligence.",
+    "If everything seems under control, you're not going fast enough.",
+    "Worry is a waste of emotional reserve.",
+    "Do it first and feel about it afterwards.",
+    "The two most powerful warriors are patience and time.",
+    "Take up one idea. Make that one idea your life — think of it, dream of it, live on that idea. Let every part of your body be full of that idea, and leave every other idea alone. This is the way to success.",
+    // — other people & the mind —
+    "If you are easily offended, you are easily manipulated. Take a deep breath and switch off your ego.",
+    "You'll never be happy if you constantly worry what others think about you."
+  ];
+
+  const list = $('quotesList');
+  QUOTES.forEach(text=>{
+    const q = document.createElement('div'); q.className='quote';
+    const p = document.createElement('p'); p.textContent = '“'+text+'”';
+    q.appendChild(p); list.appendChild(q);
+  });
+
+  const overlay = $('overlay');
+  function openM(e){ if(e) e.preventDefault(); overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; }
+  function closeM(){ overlay.classList.remove('open'); overlay.setAttribute('aria-hidden','true'); document.body.style.overflow=''; }
+  $('openQuotes').addEventListener('click', openM);
+  $('closeQuotes').addEventListener('click', closeM);
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) closeM(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeM(); });
+})();
+</script>
+</body>
+</html>

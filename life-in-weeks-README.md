@@ -4,10 +4,10 @@ A single-page **memento mori** web app that visualises an entire human lifespan 
 
 > *"How we spend our days is how we spend our lives."*
 
-**🔗 Live demo:** `https://<your-username>.github.io/life-in-weeks/`
+**🔗 Live demo:** `https://srikanthchandra174.github.io/srikanth.github.io/`
 
-<!-- Add a screenshot here: drag an image into the GitHub editor, or commit one as screenshot.png -->
-<!-- ![Screenshot](screenshot.png) -->
+<img width="955" height="473" alt="image" src="https://github.com/user-attachments/assets/fc135bde-0176-4ab5-8072-91d2a5dc0e5e" />
+
 
 ---
 
